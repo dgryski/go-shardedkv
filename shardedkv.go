@@ -1,7 +1,6 @@
 package shardedkv
 
 import (
-	"github.com/dgryski/go-ketama"
 	"sync"
 )
 
@@ -13,12 +12,16 @@ type Storage interface {
 }
 
 type KVStore struct {
-	continuum ketama.Continuum
+	continuum Chooser
 	storages  map[string]Storage
-	migration ketama.Continuum
+	migration Chooser
 
 	// we avoid holding the lock during a call to a storage engine, which may block
 	mu sync.Mutex
+}
+
+type Chooser interface {
+	Choose(key string) string
 }
 
 func (kv *KVStore) Get(key string) ([]byte, bool, error) {
@@ -29,10 +32,10 @@ func (kv *KVStore) Get(key string) ([]byte, bool, error) {
 	kv.mu.Lock()
 
 	if kv.migration != nil {
-		shard := kv.migration.Hash(string(key))
+		shard := kv.migration.Choose(string(key))
 		migStorage = kv.storages[shard]
 	}
-	shard := kv.continuum.Hash(string(key))
+	shard := kv.continuum.Choose(string(key))
 	storage = kv.storages[shard]
 
 	kv.mu.Unlock()
@@ -58,9 +61,9 @@ func (kv *KVStore) Set(key string, val []byte) error {
 	kv.mu.Lock()
 
 	if kv.migration != nil {
-		shard = kv.migration.Hash(string(key))
+		shard = kv.migration.Choose(string(key))
 	} else {
-		shard = kv.continuum.Hash(string(key))
+		shard = kv.continuum.Choose(string(key))
 	}
 	storage := kv.storages[shard]
 
@@ -77,10 +80,10 @@ func (kv *KVStore) Delete(key string) (bool, error) {
 	kv.mu.Lock()
 
 	if kv.migration != nil {
-		shard := kv.migration.Hash(string(key))
+		shard := kv.migration.Choose(string(key))
 		migStorage = kv.storages[shard]
 	}
-	shard := kv.continuum.Hash(string(key))
+	shard := kv.continuum.Choose(string(key))
 	storage = kv.storages[shard]
 
 	kv.mu.Unlock()
@@ -107,10 +110,10 @@ func (kv *KVStore) ResetConnection(key string) error {
 	kv.mu.Lock()
 
 	if kv.migration != nil {
-		shard := kv.migration.Hash(string(key))
+		shard := kv.migration.Choose(string(key))
 		migStorage = kv.storages[shard]
 	}
-	shard := kv.continuum.Hash(string(key))
+	shard := kv.continuum.Choose(string(key))
 	storage = kv.storages[shard]
 
 	kv.mu.Unlock()
@@ -140,7 +143,7 @@ func (kv *KVStore) DeleteShard(shard string, storage Storage) {
 	delete(kv.storages, shard)
 }
 
-func (kv *KVStore) BeginMigration(continuum ketama.Continuum) {
+func (kv *KVStore) BeginMigration(continuum Chooser) {
 
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
