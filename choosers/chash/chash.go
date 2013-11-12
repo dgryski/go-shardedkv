@@ -6,20 +6,29 @@ import (
 
 type CHash struct {
 	m *consistenthash.Map
+	s []string
 }
 
-func New(servers ...string) *CHash {
+func New() *CHash {
 
 	c := &CHash{
-		m: consistenthash.New(160, leveldbHash),
+		m: nil,
+		s: nil,
 	}
-
-	c.m.Add(servers...)
 
 	return c
 }
 
+func (c *CHash) SetBuckets(buckets []string) error {
+	c.m = consistenthash.New(160, leveldbHash)
+	c.s = buckets
+	c.m.Add(buckets...)
+	return nil
+}
+
 func (c *CHash) Choose(key string) string { return c.m.Get(key) }
+
+func (c *CHash) Buckets() []string { return c.s }
 
 // leveldb's bloom filter hash, a murmur-lite
 func leveldbHash(b []byte) uint32 {

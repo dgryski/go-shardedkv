@@ -21,7 +21,29 @@ type KVStore struct {
 }
 
 type Chooser interface {
+	SetBuckets([]string) error
 	Choose(key string) string
+	Buckets() []string
+}
+
+type Shard struct {
+	Name    string
+	Backend Storage
+}
+
+func New(chooser Chooser, shards []Shard) *KVStore {
+	var buckets []string
+	kv := &KVStore{
+		continuum: chooser,
+		storages:  make(map[string]Storage),
+		// what about migration?
+	}
+	for _, shard := range shards {
+		buckets = append(buckets, shard.Name)
+		kv.AddShard(shard.Name, shard.Backend)
+	}
+	chooser.SetBuckets(buckets)
+	return kv
 }
 
 func (kv *KVStore) Get(key string) ([]byte, bool, error) {

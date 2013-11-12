@@ -6,23 +6,30 @@ import (
 
 type Ketama struct {
 	k ketama.Continuum
+	s []string
 }
 
-func New(servers ...string) (*Ketama, error) {
+func New() *Ketama {
+	return &Ketama{k: nil, s: nil}
+}
 
-	b := make([]ketama.Bucket, len(servers))
+func (k *Ketama) SetBuckets(buckets []string) error {
+	b := make([]ketama.Bucket, len(buckets))
 
-	for i, s := range servers {
+	for i, s := range buckets {
 		b[i].Label = s
 		b[i].Weight = 1
 	}
 
 	ket, err := ketama.New(b)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	return &Ketama{k: ket}, nil
+	k.k = ket
+	k.s = buckets
+	return nil
 }
 
 func (k *Ketama) Choose(key string) string { return k.k.Hash(key) }
+
+func (k *Ketama) Buckets() []string { return k.s }
