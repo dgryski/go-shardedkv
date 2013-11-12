@@ -2,6 +2,7 @@ package rest
 
 import (
 	"github.com/dgryski/go-shardedkv/storagetest"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"testing"
@@ -19,7 +20,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			w.Write(storage[k])
 		}
 	} else if r.Method == "PUT" {
-		storage[k] = []byte(k)
+		val, _ := ioutil.ReadAll(r.Body)
+		storage[k] = val
 		w.WriteHeader(http.StatusOK)
 	} else if r.Method == "DELETE" {
 		v := storage[k]

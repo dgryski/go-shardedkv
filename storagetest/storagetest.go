@@ -18,7 +18,7 @@ func StorageTest(t *testing.T, storage shardedkv.Storage) {
 	}
 
 	v, ok, err = storage.Get("hello")
-	if v == nil || !ok || err != nil {
+	if v == nil || !ok || err != nil || string(v) != "wowza" {
 		t.Errorf("failed getting a valid key: v=%v ok=%v err=%v\n", v, ok, err)
 	}
 
