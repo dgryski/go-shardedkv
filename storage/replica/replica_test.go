@@ -15,8 +15,10 @@ func (d discard) Delete(key string) (bool, error)      { return false, nil }
 func (d discard) ResetConnection(key string) error     { return nil }
 
 func TestReplica(t *testing.T) {
-	r := New(discard{}, memory.New())
-	storagetest.StorageTest(t, r)
-	r = New(memory.New(), discard{})
-	storagetest.StorageTest(t, r)
+	for i := 0; i < 10; i++ {
+		r := New(discard{}, memory.New())
+		storagetest.StorageTest(t, r)
+		r = New(memory.New(), discard{})
+		storagetest.StorageTest(t, r)
+	}
 }
