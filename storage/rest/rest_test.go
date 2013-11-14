@@ -12,18 +12,19 @@ var storage map[string][]byte
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	k := r.URL.String()
-	if r.Method == "GET" {
+	switch r.Method {
+	case "GET":
 		v := storage[k]
 		if v == nil {
 			w.WriteHeader(http.StatusNotFound)
 		} else {
 			w.Write(storage[k])
 		}
-	} else if r.Method == "PUT" {
+	case "PUT":
 		val, _ := ioutil.ReadAll(r.Body)
 		storage[k] = val
 		w.WriteHeader(http.StatusOK)
-	} else if r.Method == "DELETE" {
+	case "DELETE":
 		v := storage[k]
 		if v == nil {
 			w.WriteHeader(http.StatusNotFound)
