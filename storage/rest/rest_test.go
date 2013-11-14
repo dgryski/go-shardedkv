@@ -4,7 +4,7 @@ import (
 	"github.com/dgryski/go-shardedkv/storagetest"
 	"io/ioutil"
 	"net/http"
-	"strconv"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -35,14 +35,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func startHttpListener(port int) {
-	storage = make(map[string][]byte)
-	http.HandleFunc("/", handler)
-	http.ListenAndServe(":"+strconv.Itoa(port), nil)
-}
-
 func TestRest(t *testing.T) {
-	go startHttpListener(9876)
-	r := New("http://localhost:9876")
+	storage = make(map[string][]byte)
+	ts := httptest.NewServer(http.HandlerFunc(handler))
+	defer ts.Close()
+	r := New(ts.URL)
 	storagetest.StorageTest(t, r)
 }
