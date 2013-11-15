@@ -14,6 +14,7 @@ type Storage struct {
 
 // FIXME(dgryski): allow injection of http client
 
+// New returns a rest-backed storage at the given base URL
 func New(base string) *Storage {
 	return &Storage{
 		base: base,

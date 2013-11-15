@@ -1,3 +1,4 @@
+// Package redis is a redis-backed key-value store
 package redis
 
 // TODO: http://godoc.org/git.tideland.biz/godm/redis has support for HASH
@@ -11,6 +12,7 @@ type Storage struct {
 	r    redis.Conn
 }
 
+// New returns a new storage, backed  by the redis server at 'addr'
 func New(addr string) (*Storage, error) {
 
 	conn, err := redis.Dial("tcp", addr)

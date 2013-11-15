@@ -1,3 +1,4 @@
+// Package sql is an SQL-backed key-value store
 package sql
 
 import (
@@ -21,12 +22,15 @@ type Storage struct {
 	connector func() (*sql.DB, error)
 }
 
+// TableConfig is the configuration for the table used for the key-value store
 type TableConfig struct {
 	Table       string
 	KeyColumn   string
 	ValueColumn string
 }
 
+// New returns a new sql key-value store.  Connector should be a function which
+// returns an sql.DB object for the database where the table lives.
 func New(connector func() (*sql.DB, error), config *TableConfig) (*Storage, error) {
 
 	db, err := connector()

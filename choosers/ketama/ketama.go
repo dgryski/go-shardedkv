@@ -1,3 +1,4 @@
+// Package ketama is a chooser wrapping github.com/dgryski/go-ketama's consistent hash implementation
 package ketama
 
 import (

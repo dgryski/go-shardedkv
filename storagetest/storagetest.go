@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// StorageTest is a simple sanity check for a shardedkv Storage backend
 func StorageTest(t *testing.T, storage shardedkv.Storage) {
 
 	v, ok, err := storage.Get("hello")

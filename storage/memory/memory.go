@@ -1,3 +1,4 @@
+// Package memory is a memory-backed key-value store, using a regular Go map.  This is useful mostly for testing.
 package memory
 
 import (
@@ -9,6 +10,7 @@ type Storage struct {
 	mu    sync.Mutex
 }
 
+// New returns a new memory-backed Storage
 func New() *Storage {
 	return &Storage{
 		store: make(map[string][]byte),

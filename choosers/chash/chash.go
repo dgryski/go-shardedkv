@@ -1,3 +1,4 @@
+// Package chash is a chooser compatible with github.com/dgryski/libchash
 package chash
 
 import (

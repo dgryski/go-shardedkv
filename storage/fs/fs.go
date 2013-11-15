@@ -1,3 +1,4 @@
+// Package fs is a file-system backed key-value store, where keys are files and the values are their contents.
 package fs
 
 import (
@@ -10,6 +11,7 @@ type Storage struct {
 	dir string
 }
 
+// New returns a new Storage, storing files in 'dir'
 func New(dir string) *Storage {
 	return &Storage{
 		dir: dir,

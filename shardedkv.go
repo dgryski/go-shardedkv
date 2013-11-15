@@ -4,13 +4,19 @@ import (
 	"sync"
 )
 
+// Storage is a key-value storage backend
 type Storage interface {
+	// Get returns the value for a given key and a bool indicating if the key was present
 	Get(key string) ([]byte, bool, error)
+	// Set sets the value for key
 	Set(key string, value []byte) error
+	// Delete removes a key from the storage, and returns a bool indicating if the key was found
 	Delete(key string) (bool, error)
+	// ResetConnection reinitializes the connection for the shard responsible for a key
 	ResetConnection(key string) error
 }
 
+// KVStore is a sharded key-value store
 type KVStore struct {
 	continuum Chooser
 	storages  map[string]Storage
@@ -20,17 +26,23 @@ type KVStore struct {
 	mu sync.Mutex
 }
 
+// Chooser maps keys to shards
 type Chooser interface {
+	// SetBuckets sets the list of known buckets from whicih the chooser should select
 	SetBuckets([]string) error
+	// Choose returns a bucket for a given key
 	Choose(key string) string
+	// Buckets returns the list of known buckets
 	Buckets() []string
 }
 
+// Shard is a named storage backend
 type Shard struct {
 	Name    string
 	Backend Storage
 }
 
+// New returns a KVStore that uses chooser to shard the keys across the provided shards
 func New(chooser Chooser, shards []Shard) *KVStore {
 	var buckets []string
 	kv := &KVStore{
@@ -46,6 +58,7 @@ func New(chooser Chooser, shards []Shard) *KVStore {
 	return kv
 }
 
+// Get implements Storage.Get()
 func (kv *KVStore) Get(key string) ([]byte, bool, error) {
 
 	var storage Storage
@@ -76,6 +89,7 @@ func (kv *KVStore) Get(key string) ([]byte, bool, error) {
 	return storage.Get(key)
 }
 
+// Set implements Storage.Set()
 func (kv *KVStore) Set(key string, val []byte) error {
 
 	var shard string
@@ -94,6 +108,7 @@ func (kv *KVStore) Set(key string, val []byte) error {
 	return storage.Set(key, val)
 }
 
+// Delete implements Storage.Delete()
 func (kv *KVStore) Delete(key string) (bool, error) {
 
 	var storage Storage
@@ -124,6 +139,7 @@ func (kv *KVStore) Delete(key string) (bool, error) {
 	return (ok || migOk), err
 }
 
+// ResetConnection implements Storage.ResetConnection()
 func (kv *KVStore) ResetConnection(key string) error {
 
 	var storage Storage
@@ -149,6 +165,7 @@ func (kv *KVStore) ResetConnection(key string) error {
 	return storage.ResetConnection(key)
 }
 
+// AddShard adds a shard from the list of known shards
 func (kv *KVStore) AddShard(shard string, storage Storage) {
 
 	kv.mu.Lock()
@@ -157,6 +174,7 @@ func (kv *KVStore) AddShard(shard string, storage Storage) {
 	kv.storages[shard] = storage
 }
 
+// DeleteShard removes a shard from the list of known shards
 func (kv *KVStore) DeleteShard(shard string, storage Storage) {
 
 	kv.mu.Lock()
@@ -165,6 +183,8 @@ func (kv *KVStore) DeleteShard(shard string, storage Storage) {
 	delete(kv.storages, shard)
 }
 
+// BeginMigration begins a continuum migration.  All the shards in the new
+// continuum must already be known to the KVStore via AddShard().
 func (kv *KVStore) BeginMigration(continuum Chooser) {
 
 	kv.mu.Lock()
@@ -173,6 +193,8 @@ func (kv *KVStore) BeginMigration(continuum Chooser) {
 	kv.migration = continuum
 }
 
+// EndMigration ends a continuum migration and marks the migration continuum
+// as the new primary
 func (kv *KVStore) EndMigration() {
 
 	kv.mu.Lock()

@@ -12,6 +12,7 @@ type Storage struct {
 	mu       sync.Mutex
 }
 
+// New returns a Storage that queries multiple replicas in parallel
 func New(replicas ...shardedkv.Storage) *Storage {
 	return &Storage{
 		replicas: replicas,
