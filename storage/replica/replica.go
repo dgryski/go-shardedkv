@@ -2,29 +2,53 @@
 package replica
 
 import (
-	"github.com/dgryski/go-shardedkv"
+	"fmt"
 	"math/rand"
-	"sync"
+	"strings"
+
+	shardedkv "github.com/dgryski/go-shardedkv"
 )
 
 type Storage struct {
-	replicas []shardedkv.Storage
-	mu       sync.Mutex
+	MaxFailures int
+	Replicas    []shardedkv.Storage
+}
+
+type ReplicaError struct {
+	Replica int
+	Err     error
+}
+
+func (r ReplicaError) Error() string {
+	return fmt.Sprintf("replica %d: %s", r.Replica, r.Err)
+}
+
+type MultiError []ReplicaError
+
+func (me MultiError) Error() string {
+
+	var errs []string
+	for _, e := range me {
+		errs = append(errs, e.Error())
+	}
+
+	return strings.Join(errs, ";")
 }
 
 // New returns a Storage that queries multiple replicas in parallel
-func New(replicas ...shardedkv.Storage) *Storage {
+func New(maxFailures int, replicas ...shardedkv.Storage) *Storage {
 	return &Storage{
-		replicas: replicas,
+		MaxFailures: maxFailures,
+		Replicas:    replicas,
 	}
 }
 
 func (s *Storage) Get(key string) ([]byte, bool, error) {
 
-	l := len(s.replicas)
+	l := len(s.Replicas)
 
 	if l == 1 {
-		return s.replicas[0].Get(key)
+		return s.Replicas[0].Get(key)
 	}
 
 	idx1 := rand.Intn(l)
@@ -32,75 +56,121 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 	if idx2 >= idx1 {
 		idx2++
 	}
-	r1 := s.replicas[idx1]
-	r2 := s.replicas[idx2]
+	r1 := s.Replicas[idx1]
+	r2 := s.Replicas[idx2]
 
 	type result struct {
+		idx int
 		b   []byte
 		ok  bool
 		err error
 	}
 
-	f := func(storage shardedkv.Storage, ch chan<- result) {
+	f := func(idx int, storage shardedkv.Storage, ch chan<- result) {
 		var r result
+		r.idx = idx
 		r.b, r.ok, r.err = storage.Get(key)
 		ch <- r
 	}
 
 	ch := make(chan result)
-	go f(r1, ch)
-	go f(r2, ch)
+	go f(idx1, r1, ch)
+	go f(idx2, r2, ch)
 
 	r := <-ch
 
 	if !r.ok || r.err != nil {
-		// failed, try the other replica
+		// store this error away
+		// note that r.err might actually be nil here
+		rerr := ReplicaError{Replica: r.idx, Err: r.err}
+
+		// try the other replica
 		r := <-ch
-		return r.b, r.ok, r.err
+		if r.err != nil {
+
+			// we got an error contacting the second replica, so store it away
+			me := MultiError{ReplicaError{Replica: r.idx, Err: r.err}}
+
+			// if our _first_ request also had an error and not just a failed-get, add that as well
+			if rerr.Err != nil {
+				me = append(me, rerr)
+			}
+
+			// finally, only report the errors if we've above the MaxFailures limit
+			if len(me) > s.MaxFailures {
+				return r.b, r.ok, me
+			}
+
+			return r.b, r.ok, nil
+		}
+
+		// If the user wants to be notified about all errors, return
+		// the error from the first fetch attempt if there was one.
+		// It's wrapped in a MultiError so we're consistent about what
+		// we return when dealing with the replicas.
+
+		if rerr.Err != nil && s.MaxFailures == 0 {
+			return r.b, r.ok, MultiError{rerr}
+		}
+
+		return r.b, r.ok, nil
 	}
 
 	// success -- drain the other replica in the background
 	go func() { <-ch }()
 
-	return r.b, r.ok, r.err
+	// no error from the storage backend, assume it's ok
+	return r.b, r.ok, nil
 }
 
 func (s *Storage) Set(key string, val []byte) error {
-	var err error
-	for i := 0; i < len(s.replicas); i++ {
-		e := s.replicas[i].Set(key, val)
-		if err == nil && e != nil {
-			err = e
+	var merr MultiError
+	for i := 0; i < len(s.Replicas); i++ {
+		err := s.Replicas[i].Set(key, val)
+		if err != nil {
+			merr = append(merr, ReplicaError{Replica: i, Err: err})
 		}
 	}
 
-	return err
+	if len(merr) > s.MaxFailures {
+		return merr
+	}
+
+	return nil
 }
 
 func (s *Storage) Delete(key string) (bool, error) {
-	var err error
+	var merr MultiError
 	var ok bool
-	for i := 0; i < len(s.replicas); i++ {
-		o, e := s.replicas[i].Delete(key)
+	for i := 0; i < len(s.Replicas); i++ {
+		o, err := s.Replicas[i].Delete(key)
 
 		ok = ok || o
 
-		if err == nil && e != nil {
-			err = e
+		if err != nil {
+			merr = append(merr, ReplicaError{Replica: i, Err: err})
 		}
 	}
 
-	return ok, err
+	if len(merr) > s.MaxFailures {
+		return ok, merr
+	}
+
+	return ok, nil
 }
 
 func (s *Storage) ResetConnection(key string) error {
-	var err error
-	for i := 0; i < len(s.replicas); i++ {
-		e := s.replicas[i].ResetConnection(key)
-		if err == nil && e != nil {
-			err = e
+	var merr MultiError
+	for i := 0; i < len(s.Replicas); i++ {
+		err := s.Replicas[i].ResetConnection(key)
+		if err != nil {
+			merr = append(merr, ReplicaError{Replica: i, Err: err})
 		}
 	}
 
-	return err
+	if len(merr) > s.MaxFailures {
+		return merr
+	}
+
+	return nil
 }
