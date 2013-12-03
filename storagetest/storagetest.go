@@ -33,6 +33,11 @@ func StorageTest(t *testing.T, storage shardedkv.Storage) {
 		t.Errorf("failed deleting key: ok=%v err=%v\n", ok, err)
 	}
 
+	err = storage.ResetConnection("hello")
+	if err != nil {
+		t.Errorf("failed resetting connection for key: err=%v\n", err)
+	}
+
 	v, ok, err = storage.Get("hello")
 	if v != nil || ok || err != nil {
 		t.Errorf("getting a non-existent key post-delete was 'ok': v=%v ok=%v err=%v\n", v, ok, err)
