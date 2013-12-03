@@ -21,7 +21,7 @@ func New(addr string) (*Storage, error) {
 		return nil, err
 	}
 
-	return &Storage{r: conn}, nil
+	return &Storage{addr: addr, r: conn}, nil
 }
 
 func (s *Storage) Get(key string) ([]byte, bool, error) {
