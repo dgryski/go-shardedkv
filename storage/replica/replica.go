@@ -75,6 +75,11 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 
 	ch := make(chan result)
 	go f(idx1, r1, ch)
+
+	// TODO(dgryski): hold off sending the second request until the first
+	// one has been outstanding for more than the 95th-percentile expected
+	// latency.
+	// http://cacm.acm.org/magazines/2013/2/160173-the-tail-at-scale/fulltext
 	go f(idx2, r2, ch)
 
 	r := <-ch
