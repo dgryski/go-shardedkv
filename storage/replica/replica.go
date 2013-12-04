@@ -79,36 +79,29 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 
 	r := <-ch
 
-	if !r.ok || r.err != nil {
-		// store this error away
-		// note that r.err might actually be nil here
-		rerr := ReplicaError{Replica: r.idx, Err: r.err}
+	if r.ok && r.err == nil {
+		// success!
+		// drain the other replica in the background
+		go func() { <-ch }()
 
-		// try the other replica
-		r := <-ch
-		if r.err != nil {
+		// and return what we got
+		return r.b, true, nil
+	}
 
-			// we got an error contacting the second replica, so store it away
-			me := MultiError{ReplicaError{Replica: r.idx, Err: r.err}}
+	// store this error away
+	// note that r.err might actually be nil here
+	rerr := ReplicaError{Replica: r.idx, Err: r.err}
 
-			// if our _first_ request also had an error and not just a failed-get, add that as well
-			if rerr.Err != nil {
-				me = append(me, rerr)
-			}
+	// try the other replica
+	r = <-ch
 
-			// finally, only report the errors if we've above the MaxFailures limit
-			if len(me) > s.MaxFailures {
-				return r.b, r.ok, me
-			}
+	if r.ok && r.err == nil {
+		// success!
 
-			return r.b, r.ok, nil
-		}
-
-		// If the user wants to be notified about all errors, return
-		// the error from the first fetch attempt if there was one.
-		// It's wrapped in a MultiError so we're consistent about what
-		// we return when dealing with the replicas.
-
+		// Return the first error if we had one _and_ if the user wants
+		// to be notified of it.  It's wrapped in a MultiError so we're
+		// consistent about what we return when dealing with the
+		// replicas.
 		if rerr.Err != nil && s.MaxFailures == 0 {
 			return r.b, r.ok, MultiError{rerr}
 		}
@@ -116,10 +109,23 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 		return r.b, r.ok, nil
 	}
 
-	// success -- drain the other replica in the background
-	go func() { <-ch }()
+	var me MultiError
 
-	// no error from the storage backend, assume it's ok
+	// add the error from our first request, if it wasn't just a failed get
+	if rerr.Err != nil {
+		me = append(me, rerr)
+	}
+
+	// add the error from the second request, if any
+	if r.err != nil {
+		me = append(me, ReplicaError{Replica: r.idx, Err: r.err})
+	}
+
+	// finally, only report the errors if we've above the MaxFailures limit
+	if len(me) > s.MaxFailures {
+		return r.b, r.ok, me
+	}
+
 	return r.b, r.ok, nil
 }
 
