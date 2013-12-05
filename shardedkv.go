@@ -28,7 +28,7 @@ type KVStore struct {
 
 // Chooser maps keys to shards
 type Chooser interface {
-	// SetBuckets sets the list of known buckets from whicih the chooser should select
+	// SetBuckets sets the list of known buckets from which the chooser should select
 	SetBuckets([]string) error
 	// Choose returns a bucket for a given key
 	Choose(key string) string
