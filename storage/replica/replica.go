@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"time"
 
 	shardedkv "github.com/dgryski/go-shardedkv"
 )
@@ -76,18 +77,31 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 	ch := make(chan result)
 	go f(idx1, r1, ch)
 
-	// TODO(dgryski): hold off sending the second request until the first
-	// one has been outstanding for more than the 95th-percentile expected
-	// latency.
-	// http://cacm.acm.org/magazines/2013/2/160173-the-tail-at-scale/fulltext
-	go f(idx2, r2, ch)
+	var r result
+	var timedOut bool
 
-	r := <-ch
+	select {
+	case <-time.After(10 * time.Millisecond):
+		timedOut = true
+	case r = <-ch:
+		// got a response from somebody, we're done
+	}
+
+	if timedOut {
+		// query the second replica and wait for a response from somebody
+		go f(idx2, r2, ch)
+		r = <-ch
+	}
+
+	// if we're here, r has been filled in either by the select loop or by
+	// in the timedOut block above
 
 	if r.ok && r.err == nil {
 		// success!
-		// drain the other replica in the background
-		go func() { <-ch }()
+		// drain the other replica in the background if we need to
+		if timedOut {
+			go func() { <-ch }()
+		}
 
 		// and return what we got
 		return r.b, true, nil
@@ -98,6 +112,9 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 	rerr := ReplicaError{Replica: r.idx, Err: r.err}
 
 	// try the other replica
+	if !timedOut {
+		go f(idx2, r2, ch)
+	}
 	r = <-ch
 
 	if r.ok && r.err == nil {
