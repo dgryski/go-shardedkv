@@ -13,6 +13,7 @@ import (
 type Storage struct {
 	MaxFailures int
 	Replicas    []shardedkv.Storage
+	hedgedTime  time.Duration
 }
 
 type ReplicaError struct {
@@ -41,6 +42,7 @@ func New(maxFailures int, replicas ...shardedkv.Storage) *Storage {
 	return &Storage{
 		MaxFailures: maxFailures,
 		Replicas:    replicas,
+		hedgedTime:  1 * time.Second,
 	}
 }
 
@@ -81,7 +83,7 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 	var timedOut bool
 
 	select {
-	case <-time.After(10 * time.Millisecond):
+	case <-time.After(s.hedgedTime):
 		timedOut = true
 	case r = <-ch:
 		// got a response from somebody, we're done
@@ -202,3 +204,9 @@ func (s *Storage) ResetConnection(key string) error {
 
 	return nil
 }
+
+// SetHedgedTimeout sets the timeout for a single replica to respond before a querying a backup.
+func (s *Storage) SetHedgedTimeout(timeout time.Duration) { s.hedgedTime = timeout }
+
+// HedgedTimeout returns the timeout for a single replica to respond before querying a backup.  Defaults to 1 second.
+func (s *Storage) HedgedTimeout() time.Duration { return s.hedgedTime }
