@@ -52,7 +52,8 @@ func (s *Storage) Set(key string, val []byte) error {
 		return err
 	}
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+	// any status code 200..299 is "success", so fail on anything else
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return errors.New(http.StatusText(resp.StatusCode))
 	}
 
@@ -74,7 +75,7 @@ func (s *Storage) Delete(key string) (bool, error) {
 	if resp.StatusCode == http.StatusNotFound {
 		// XXX this is necessary to conform to the actual behaviour of other storage engines
 		return false, nil
-	} else if resp.StatusCode != 200 && resp.StatusCode != 202 && resp.StatusCode != 204 {
+	} else if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return false, errors.New(http.StatusText(resp.StatusCode))
 	}
 
