@@ -154,11 +154,25 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 }
 
 func (s *Storage) Set(key string, val []byte) error {
+
+	errch := make(chan *ReplicaError)
+
+	for i := 0; i < len(s.Replicas); i++ {
+		go func(replica int, errch chan *ReplicaError) {
+			err := s.Replicas[replica].Set(key, val)
+			var reperr *ReplicaError
+			if err != nil {
+				reperr = &ReplicaError{Replica: replica, Err: err}
+			}
+			errch <- reperr
+		}(i, errch)
+	}
+
 	var merr MultiError
 	for i := 0; i < len(s.Replicas); i++ {
-		err := s.Replicas[i].Set(key, val)
-		if err != nil {
-			merr = append(merr, ReplicaError{Replica: i, Err: err})
+		reperr := <-errch
+		if reperr != nil {
+			merr = append(merr, *reperr)
 		}
 	}
 
