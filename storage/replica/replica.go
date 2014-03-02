@@ -76,7 +76,7 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 		ch <- r
 	}
 
-	ch := make(chan result)
+	ch := make(chan result, 2)
 	go f(idx1, r1, ch)
 
 	var r result
@@ -86,7 +86,7 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 	case <-time.After(s.hedgedTime):
 		timedOut = true
 	case r = <-ch:
-		// got a response from somebody, we're done
+		// got a response, we're done
 	}
 
 	if timedOut {
@@ -99,13 +99,7 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 	// in the timedOut block above
 
 	if r.ok && r.err == nil {
-		// success!
-		// drain the other replica in the background if we need to
-		if timedOut {
-			go func() { <-ch }()
-		}
-
-		// and return what we got
+		// success -- return what we got
 		return r.b, true, nil
 	}
 
@@ -113,7 +107,7 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 	// note that r.err might actually be nil here
 	rerr := ReplicaError{Replica: r.idx, Err: r.err}
 
-	// try the other replica
+	// try the other replica if we haven't already
 	if !timedOut {
 		go f(idx2, r2, ch)
 	}
