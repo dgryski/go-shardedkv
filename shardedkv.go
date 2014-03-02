@@ -175,7 +175,7 @@ func (kv *KVStore) AddShard(shard string, storage Storage) {
 }
 
 // DeleteShard removes a shard from the list of known shards
-func (kv *KVStore) DeleteShard(shard string, storage Storage) {
+func (kv *KVStore) DeleteShard(shard string) {
 
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
