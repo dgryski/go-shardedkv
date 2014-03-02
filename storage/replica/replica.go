@@ -111,6 +111,8 @@ func (s *Storage) Get(key string) ([]byte, bool, error) {
 	if !timedOut {
 		go f(idx2, r2, ch)
 	}
+
+	// FIXME(dgryski): have another timeout block here?
 	r = <-ch
 
 	if r.ok && r.err == nil {
