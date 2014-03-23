@@ -1,9 +1,22 @@
 package storagetest
 
 import (
-	"github.com/dgryski/go-shardedkv"
+	"errors"
 	"testing"
+
+	"github.com/dgryski/go-shardedkv"
 )
+
+type Errstore struct{}
+
+func (e Errstore) Get(key string) ([]byte, bool, error) {
+	return nil, false, errors.New("error storage get")
+}
+func (e Errstore) Set(key string, val []byte) error { return errors.New("error storage Set") }
+func (e Errstore) Delete(key string) (bool, error)  { return false, errors.New("error storage Delete") }
+func (e Errstore) ResetConnection(key string) error {
+	return errors.New("error storage ResetConnection")
+}
 
 // StorageTest is a simple sanity check for a shardedkv Storage backend
 func StorageTest(t *testing.T, storage shardedkv.Storage) {

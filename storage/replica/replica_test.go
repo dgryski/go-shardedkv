@@ -1,7 +1,6 @@
 package replica
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/dgryski/go-shardedkv/storage/memory"
@@ -16,17 +15,6 @@ func (d discard) Set(key string, val []byte) error     { return nil }
 func (d discard) Delete(key string) (bool, error)      { return false, nil }
 func (d discard) ResetConnection(key string) error     { return nil }
 
-type errstore struct{}
-
-func (e errstore) Get(key string) ([]byte, bool, error) {
-	return nil, false, errors.New("error storage get")
-}
-func (e errstore) Set(key string, val []byte) error { return errors.New("error storage Set") }
-func (e errstore) Delete(key string) (bool, error)  { return false, errors.New("error storage Delete") }
-func (e errstore) ResetConnection(key string) error {
-	return errors.New("error storage ResetConnection")
-}
-
 func checkMultiError(t *testing.T, err error, what string) {
 	me, ok := err.(MultiError)
 	if !ok {
@@ -39,7 +27,7 @@ func checkMultiError(t *testing.T, err error, what string) {
 }
 
 func TestMultiError(t *testing.T) {
-	r := New(0, errstore{}, errstore{})
+	r := New(0, storagetest.Errstore{}, storagetest.Errstore{})
 
 	v, ok, err := r.Get("hello")
 	if v != nil || ok || err == nil {
@@ -78,9 +66,9 @@ func TestDiscardReplica(t *testing.T) {
 func TestErrorReplica(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
-		r := New(2, errstore{}, memory.New())
+		r := New(2, storagetest.Errstore{}, memory.New())
 		storagetest.StorageTest(t, r)
-		r = New(2, memory.New(), errstore{})
+		r = New(2, memory.New(), storagetest.Errstore{})
 		storagetest.StorageTest(t, r)
 	}
 }
