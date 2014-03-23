@@ -18,7 +18,7 @@ func (d discard) ResetConnection(key string) error     { return nil }
 func checkMultiError(t *testing.T, err error, what string) {
 	me, ok := err.(MultiError)
 	if !ok {
-		t.Errorf("error not a multierror from %s: %t", what, err)
+		t.Errorf("error not a multierror from %s: %T", what, err)
 	}
 
 	if len(me) != 2 {
@@ -43,7 +43,7 @@ func TestMultiError(t *testing.T) {
 
 	ok, err = r.Delete("hello")
 	if ok || err == nil {
-		t.Errorf("deleted a key from an error store: ok=%err=%v", ok, err)
+		t.Errorf("deleted a key from an error store: ok=%v err=%v", ok, err)
 	}
 	checkMultiError(t, err, "delete")
 
