@@ -27,10 +27,10 @@ func (r ReplicaError) Error() string {
 
 type MultiError []ReplicaError
 
-func (me MultiError) Error() string {
+func (merr MultiError) Error() string {
 
 	var errs []string
-	for _, e := range me {
+	for _, e := range merr {
 		errs = append(errs, e.Error())
 	}
 
