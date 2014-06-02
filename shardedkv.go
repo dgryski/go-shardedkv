@@ -1,3 +1,11 @@
+// Package shardedkv is  sharded key-value store with multiple storage backends
+/*
+
+This library is compatible with the original Perl implementation:
+    http://search.cpan.org/dist/ShardedKV/
+    https://github.com/tsee/p5-ShardedKV
+
+*/
 package shardedkv
 
 import (
