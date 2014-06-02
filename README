@@ -1,0 +1,7 @@
+go-shardedkv: A sharded key-value store with multiple storage backends
+
+This library is compatible with the original Perl implementation:
+    http://search.cpan.org/dist/ShardedKV/
+    https://github.com/tsee/p5-ShardedKV
+
+Godoc: http://godoc.org/github.com/dgryski/go-shardedkv
