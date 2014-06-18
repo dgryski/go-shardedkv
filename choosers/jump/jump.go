@@ -1,17 +1,15 @@
 // Package jump is a chooser using Google's Jump Consistent Hash.  It uses Spooky Hash to turn for the string-to-uint64 mapping.
 package jump
 
-import (
-	"github.com/dgryski/go-jump"
-	"github.com/dgryski/go-spooky"
-)
+import "github.com/dgryski/go-jump"
 
 type Jump struct {
-	nodes []string
+	hasher func([]byte) uint64
+	nodes  []string
 }
 
-func New() *Jump {
-	return &Jump{}
+func New(h func([]byte) uint64) *Jump {
+	return &Jump{hasher: h}
 }
 
 func (j *Jump) SetBuckets(buckets []string) error {
@@ -21,7 +19,7 @@ func (j *Jump) SetBuckets(buckets []string) error {
 
 func (j *Jump) Choose(key string) string {
 	// Hard-coded spooky hash for now.  Easy enough to replace if needed.
-	return j.nodes[jump.Hash(spooky.Hash64([]byte(key)), len(j.nodes))]
+	return j.nodes[jump.Hash(j.hasher([]byte(key)), len(j.nodes))]
 }
 
 func (j *Jump) Buckets() []string { return j.nodes }
