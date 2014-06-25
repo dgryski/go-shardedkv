@@ -1,4 +1,4 @@
-// Package jump is a chooser using Google's Jump Consistent Hash.  It uses Spooky Hash to turn for the string-to-uint64 mapping.
+// Package jump is a chooser using Google's Jump Consistent Hash.  It requires a 64-bit hash function for the string-to-uint64 mapping.  Good candidates are siphash, spooky, cityhash and farmhash.
 package jump
 
 import "github.com/dgryski/go-jump"
