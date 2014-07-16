@@ -47,10 +47,10 @@ func (s *Storage) Set(key string, val []byte) error {
 	}
 
 	resp, err := http.DefaultClient.Do(req)
-
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 
 	// any status code 200..299 is "success", so fail on anything else
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -71,6 +71,7 @@ func (s *Storage) Delete(key string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
 		// XXX this is necessary to conform to the actual behaviour of other storage engines
