@@ -9,21 +9,26 @@ import (
 )
 
 type Storage struct {
-	base string
+	base   string
+	client *http.Client
 }
 
-// FIXME(dgryski): allow injection of http client
-
-// New returns a rest-backed storage at the given base URL
+// New returns a rest-backed storage at the given base URL using the default HTTP client
 func New(base string) *Storage {
+	return NewWithClient(base, http.DefaultClient)
+}
+
+// New returns a rest-backed storage at the given base URL using a custom HTTP client
+func NewWithClient(base string, client *http.Client) *Storage {
 	return &Storage{
-		base: base,
+		base:   base,
+		client: client,
 	}
 }
 
 func (s *Storage) Get(key string) ([]byte, bool, error) {
 
-	resp, err := http.Get(s.base + "/" + key)
+	resp, err := s.client.Get(s.base + "/" + key)
 	if err != nil || resp.StatusCode >= 400 {
 		// TODO(dgryski): handle 404 vs. other errors
 		return nil, false, err
@@ -46,7 +51,7 @@ func (s *Storage) Set(key string, val []byte) error {
 		return err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -67,7 +72,7 @@ func (s *Storage) Delete(key string) (bool, error) {
 		return false, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return false, err
 	}
@@ -85,5 +90,6 @@ func (s *Storage) Delete(key string) (bool, error) {
 }
 
 func (s *Storage) ResetConnection(key string) error {
+	// FIXME(dgryski): Try to clean out cached keep-alive connections the client holds?
 	return nil
 }
