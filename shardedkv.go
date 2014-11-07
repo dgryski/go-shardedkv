@@ -77,10 +77,10 @@ func (kv *KVStore) Get(key string) ([]byte, bool, error) {
 	kv.mu.Lock()
 
 	if kv.migration != nil {
-		shard := kv.migration.Choose(string(key))
+		shard := kv.migration.Choose(key)
 		migStorage = kv.mstorages[shard]
 	}
-	shard := kv.continuum.Choose(string(key))
+	shard := kv.continuum.Choose(key)
 	storage = kv.storages[shard]
 
 	kv.mu.Unlock()
@@ -107,10 +107,10 @@ func (kv *KVStore) Set(key string, val []byte) error {
 	kv.mu.Lock()
 
 	if kv.migration != nil {
-		shard := kv.migration.Choose(string(key))
+		shard := kv.migration.Choose(key)
 		storage = kv.mstorages[shard]
 	} else {
-		shard := kv.continuum.Choose(string(key))
+		shard := kv.continuum.Choose(key)
 		storage = kv.storages[shard]
 	}
 
@@ -128,10 +128,10 @@ func (kv *KVStore) Delete(key string) (bool, error) {
 	kv.mu.Lock()
 
 	if kv.migration != nil {
-		shard := kv.migration.Choose(string(key))
+		shard := kv.migration.Choose(key)
 		migStorage = kv.mstorages[shard]
 	}
-	shard := kv.continuum.Choose(string(key))
+	shard := kv.continuum.Choose(key)
 	storage = kv.storages[shard]
 
 	kv.mu.Unlock()
@@ -159,10 +159,10 @@ func (kv *KVStore) ResetConnection(key string) error {
 	kv.mu.Lock()
 
 	if kv.migration != nil {
-		shard := kv.migration.Choose(string(key))
+		shard := kv.migration.Choose(key)
 		migStorage = kv.mstorages[shard]
 	}
-	shard := kv.continuum.Choose(string(key))
+	shard := kv.continuum.Choose(key)
 	storage = kv.storages[shard]
 
 	kv.mu.Unlock()
