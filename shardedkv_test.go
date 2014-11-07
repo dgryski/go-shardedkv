@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	kc "github.com/dgryski/go-shardedkv/choosers/ketama"
+	ch "github.com/dgryski/go-shardedkv/choosers/chash"
 	st "github.com/dgryski/go-shardedkv/storage/memory"
 )
 
@@ -18,7 +18,7 @@ func TestShardedkv(t *testing.T) {
 		shards = append(shards, Shard{Name: label, Backend: st.New()})
 	}
 
-	chooser := kc.New()
+	chooser := ch.New()
 
 	kv := New(chooser, shards)
 
@@ -49,7 +49,7 @@ func TestShardedkv(t *testing.T) {
 		kv.AddShard(label, backend)
 	}
 
-	migration := kc.New()
+	migration := ch.New()
 	migration.SetBuckets(migrationBuckets)
 
 	kv.BeginMigration(migration)
@@ -105,7 +105,7 @@ func TestShardedkv(t *testing.T) {
 		kv.Set("test"+strconv.Itoa(i), []byte("value"+strconv.Itoa(i)))
 	}
 
-	// end the migration[
+	// end the migration
 	kv.EndMigration()
 
 	// delete the old shards
