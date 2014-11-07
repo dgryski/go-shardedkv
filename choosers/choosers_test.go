@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/dchest/siphash"
 	"github.com/dgryski/go-shardedkv"
 	"github.com/dgryski/go-shardedkv/choosers/chash"
 	"github.com/dgryski/go-shardedkv/choosers/jump"
 	"github.com/dgryski/go-shardedkv/choosers/ketama"
-	"github.com/dgryski/go-spooky"
 )
 
 func benchmarkChooser(b *testing.B, shards int, ch shardedkv.Chooser) {
@@ -37,7 +37,9 @@ func BenchmarkChash32(b *testing.B)  { benchmarkChooser(b, 32, chash.New()) }
 func BenchmarkChash128(b *testing.B) { benchmarkChooser(b, 128, chash.New()) }
 func BenchmarkChash512(b *testing.B) { benchmarkChooser(b, 512, chash.New()) }
 
-func BenchmarkJump8(b *testing.B)   { benchmarkChooser(b, 8, jump.New(spooky.Hash64)) }
-func BenchmarkJump32(b *testing.B)  { benchmarkChooser(b, 32, jump.New(spooky.Hash64)) }
-func BenchmarkJump128(b *testing.B) { benchmarkChooser(b, 128, jump.New(spooky.Hash64)) }
-func BenchmarkJump512(b *testing.B) { benchmarkChooser(b, 512, jump.New(spooky.Hash64)) }
+func siphash64(b []byte) uint64 { return siphash.Hash(0, 0, b) }
+
+func BenchmarkJump8(b *testing.B)   { benchmarkChooser(b, 8, jump.New(siphash64)) }
+func BenchmarkJump32(b *testing.B)  { benchmarkChooser(b, 32, jump.New(siphash64)) }
+func BenchmarkJump128(b *testing.B) { benchmarkChooser(b, 128, jump.New(siphash64)) }
+func BenchmarkJump512(b *testing.B) { benchmarkChooser(b, 512, jump.New(siphash64)) }
