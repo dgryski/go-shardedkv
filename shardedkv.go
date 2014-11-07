@@ -28,7 +28,9 @@ type Storage interface {
 type KVStore struct {
 	continuum Chooser
 	storages  map[string]Storage
+
 	migration Chooser
+	mstorages map[string]Storage
 
 	// we avoid holding the lock during a call to a storage engine, which may block
 	mu sync.Mutex
@@ -76,7 +78,7 @@ func (kv *KVStore) Get(key string) ([]byte, bool, error) {
 
 	if kv.migration != nil {
 		shard := kv.migration.Choose(string(key))
-		migStorage = kv.storages[shard]
+		migStorage = kv.mstorages[shard]
 	}
 	shard := kv.continuum.Choose(string(key))
 	storage = kv.storages[shard]
@@ -100,16 +102,17 @@ func (kv *KVStore) Get(key string) ([]byte, bool, error) {
 // Set implements Storage.Set()
 func (kv *KVStore) Set(key string, val []byte) error {
 
-	var shard string
+	var storage Storage
 
 	kv.mu.Lock()
 
 	if kv.migration != nil {
-		shard = kv.migration.Choose(string(key))
+		shard := kv.migration.Choose(string(key))
+		storage = kv.mstorages[shard]
 	} else {
-		shard = kv.continuum.Choose(string(key))
+		shard := kv.continuum.Choose(string(key))
+		storage = kv.storages[shard]
 	}
-	storage := kv.storages[shard]
 
 	kv.mu.Unlock()
 
@@ -126,7 +129,7 @@ func (kv *KVStore) Delete(key string) (bool, error) {
 
 	if kv.migration != nil {
 		shard := kv.migration.Choose(string(key))
-		migStorage = kv.storages[shard]
+		migStorage = kv.mstorages[shard]
 	}
 	shard := kv.continuum.Choose(string(key))
 	storage = kv.storages[shard]
@@ -157,7 +160,7 @@ func (kv *KVStore) ResetConnection(key string) error {
 
 	if kv.migration != nil {
 		shard := kv.migration.Choose(string(key))
-		migStorage = kv.storages[shard]
+		migStorage = kv.mstorages[shard]
 	}
 	shard := kv.continuum.Choose(string(key))
 	storage = kv.storages[shard]
@@ -199,6 +202,26 @@ func (kv *KVStore) BeginMigration(continuum Chooser) {
 	defer kv.mu.Unlock()
 
 	kv.migration = continuum
+	kv.mstorages = kv.storages
+}
+
+// BeginMigrationWithShards begins a continuum migration using the new set of shards.
+func (kv *KVStore) BeginMigrationWithShards(continuum Chooser, shards []Shard) {
+
+	kv.mu.Lock()
+	defer kv.mu.Unlock()
+
+	var buckets []string
+	mstorages := make(map[string]Storage)
+	for _, shard := range shards {
+		buckets = append(buckets, shard.Name)
+		mstorages[shard.Name] = shard.Backend
+	}
+
+	continuum.SetBuckets(buckets)
+
+	kv.migration = continuum
+	kv.mstorages = mstorages
 }
 
 // EndMigration ends a continuum migration and marks the migration continuum
@@ -210,4 +233,7 @@ func (kv *KVStore) EndMigration() {
 
 	kv.continuum = kv.migration
 	kv.migration = nil
+
+	kv.storages = kv.mstorages
+	kv.mstorages = nil
 }
