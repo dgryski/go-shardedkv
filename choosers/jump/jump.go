@@ -18,7 +18,6 @@ func (j *Jump) SetBuckets(buckets []string) error {
 }
 
 func (j *Jump) Choose(key string) string {
-	// Hard-coded spooky hash for now.  Easy enough to replace if needed.
 	return j.nodes[jump.Hash(j.hasher([]byte(key)), len(j.nodes))]
 }
 
