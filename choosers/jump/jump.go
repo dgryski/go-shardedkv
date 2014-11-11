@@ -13,6 +13,9 @@ func New(h func([]byte) uint64) *Jump {
 }
 
 func (j *Jump) SetBuckets(buckets []string) error {
+	if len(j.nodes) != 0 {
+		j.nodes = j.nodes[:0]
+	}
 	j.nodes = append(j.nodes, buckets...)
 	return nil
 }
