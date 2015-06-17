@@ -6,7 +6,7 @@ import (
 )
 
 type Ketama struct {
-	k ketama.Continuum
+	k *ketama.Continuum
 	s []string
 }
 
