@@ -9,6 +9,7 @@ import (
 	"github.com/dgryski/go-shardedkv/choosers/chash"
 	"github.com/dgryski/go-shardedkv/choosers/jump"
 	"github.com/dgryski/go-shardedkv/choosers/ketama"
+	"github.com/dgryski/go-shardedkv/choosers/mpc"
 )
 
 func benchmarkChooser(b *testing.B, shards int, ch shardedkv.Chooser) {
@@ -36,6 +37,16 @@ func BenchmarkChash8(b *testing.B)   { benchmarkChooser(b, 8, chash.New()) }
 func BenchmarkChash32(b *testing.B)  { benchmarkChooser(b, 32, chash.New()) }
 func BenchmarkChash128(b *testing.B) { benchmarkChooser(b, 128, chash.New()) }
 func BenchmarkChash512(b *testing.B) { benchmarkChooser(b, 512, chash.New()) }
+
+func siphash64seed(b []byte, s uint64) uint64 { return uint64(siphash.Hash(0, s, b)) }
+
+// lousy seeds
+var seeds = [2]uint64{1, 2}
+
+func BenchmarkMulti8(b *testing.B)   { benchmarkChooser(b, 8, mpc.New(siphash64seed, seeds, 21)) }
+func BenchmarkMulti32(b *testing.B)  { benchmarkChooser(b, 32, mpc.New(siphash64seed, seeds, 21)) }
+func BenchmarkMulti128(b *testing.B) { benchmarkChooser(b, 128, mpc.New(siphash64seed, seeds, 21)) }
+func BenchmarkMulti512(b *testing.B) { benchmarkChooser(b, 512, mpc.New(siphash64seed, seeds, 21)) }
 
 func siphash64(b []byte) uint64 { return siphash.Hash(0, 0, b) }
 
