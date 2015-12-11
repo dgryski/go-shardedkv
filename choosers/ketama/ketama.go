@@ -33,4 +33,6 @@ func (k *Ketama) SetBuckets(buckets []string) error {
 
 func (k *Ketama) Choose(key string) string { return k.k.Hash(key) }
 
+func (k *Ketama) ChooseReplicas(key string, n int) []string { return k.k.HashMultiple(key, n) }
+
 func (k *Ketama) Buckets() []string { return k.s }
