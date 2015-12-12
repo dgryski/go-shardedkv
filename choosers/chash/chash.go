@@ -29,6 +29,8 @@ func (c *CHash) SetBuckets(buckets []string) error {
 
 func (c *CHash) Choose(key string) string { return c.m.Get(key) }
 
+func (c *CHash) ChooseReplicas(key string, n int) []string { return c.m.GetMulti(key, n) }
+
 func (c *CHash) Buckets() []string { return c.s }
 
 // leveldb's bloom filter hash, a murmur-lite

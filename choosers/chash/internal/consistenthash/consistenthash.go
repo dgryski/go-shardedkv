@@ -75,3 +75,37 @@ func (m *Map) Get(key string) string {
 
 	return m.hashMap[m.keys[idx]]
 }
+
+// Gets the closest item in the hash to the provided key, and following unique servers for replicas.
+func (m *Map) GetMulti(key string, n int) []string {
+	if m.IsEmpty() {
+		return nil
+	}
+
+	hash := int(m.hash([]byte(key)))
+
+	// Binary search for appropriate replica.
+	idx := sort.Search(len(m.keys), func(i int) bool { return m.keys[i] >= hash })
+
+	// Means we have cycled back to the first replica.
+	if idx == len(m.keys) {
+		idx = 0
+	}
+
+	seen := make(map[string]struct{})
+	result := make([]string, 0, n)
+
+	for len(result) < n {
+		label := m.hashMap[m.keys[idx]]
+		if _, ok := seen[label]; !ok {
+			result = append(result, label)
+			seen[label] = struct{}{}
+		}
+		idx++
+		if idx >= len(m.keys) {
+			idx = 0
+		}
+	}
+
+	return result
+}
