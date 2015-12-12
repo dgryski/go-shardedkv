@@ -2,7 +2,7 @@
 package chash
 
 import (
-	"github.com/golang/groupcache/consistenthash"
+	"github.com/dgryski/go-shardedkv/choosers/chash/internal/consistenthash"
 )
 
 type CHash struct {
