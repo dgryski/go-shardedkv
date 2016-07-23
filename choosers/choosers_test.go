@@ -9,6 +9,7 @@ import (
 	"github.com/dgryski/go-shardedkv/choosers/chash"
 	"github.com/dgryski/go-shardedkv/choosers/jump"
 	"github.com/dgryski/go-shardedkv/choosers/ketama"
+	"github.com/dgryski/go-shardedkv/choosers/maglev"
 	"github.com/dgryski/go-shardedkv/choosers/mpc"
 )
 
@@ -62,3 +63,8 @@ func BenchmarkJump128(b *testing.B)  { benchmarkChooser(b, 128, jump.New(siphash
 func BenchmarkJump512(b *testing.B)  { benchmarkChooser(b, 512, jump.New(siphash64)) }
 func BenchmarkJump2048(b *testing.B) { benchmarkChooser(b, 2048, jump.New(siphash64)) }
 func BenchmarkJump8192(b *testing.B) { benchmarkChooser(b, 8192, jump.New(siphash64)) }
+
+func BenchmarkMaglev8(b *testing.B)   { benchmarkChooser(b, 8, maglev.New()) }
+func BenchmarkMaglev32(b *testing.B)  { benchmarkChooser(b, 32, maglev.New()) }
+func BenchmarkMaglev128(b *testing.B) { benchmarkChooser(b, 128, maglev.New()) }
+func BenchmarkMaglev512(b *testing.B) { benchmarkChooser(b, 512, maglev.New()) }

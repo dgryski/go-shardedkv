@@ -10,6 +10,7 @@ import (
 	"github.com/dgryski/go-shardedkv/choosers/chash"
 	"github.com/dgryski/go-shardedkv/choosers/jump"
 	"github.com/dgryski/go-shardedkv/choosers/ketama"
+	"github.com/dgryski/go-shardedkv/choosers/maglev"
 	"github.com/dgryski/go-shardedkv/choosers/mpc"
 )
 
@@ -89,3 +90,8 @@ func TestDistributionJump128(t *testing.T)  { testDistribution(t, 128, jump.New(
 func TestDistributionJump512(t *testing.T)  { testDistribution(t, 512, jump.New(siphash64)) }
 func TestDistributionJump2048(t *testing.T) { testDistribution(t, 2048, jump.New(siphash64)) }
 func TestDistributionJump8192(t *testing.T) { testDistribution(t, 8192, jump.New(siphash64)) }
+
+func TestDistributionMaglev8(t *testing.T)   { testDistribution(t, 8, maglev.New()) }
+func TestDistributionMaglev32(t *testing.T)  { testDistribution(t, 32, maglev.New()) }
+func TestDistributionMaglev128(t *testing.T) { testDistribution(t, 128, maglev.New()) }
+func TestDistributionMaglev512(t *testing.T) { testDistribution(t, 512, maglev.New()) }
