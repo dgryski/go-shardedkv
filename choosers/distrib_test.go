@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/dgryski/go-shardedkv"
@@ -17,7 +18,7 @@ import (
 
 var checkDistribution = flag.Bool("checkDistribution", false, "check the distribution of the different choosers")
 
-func testDistribution(t *testing.T, shards int, ch shardedkv.Chooser) {
+func testOneDistribution(t *testing.T, shards int, ch shardedkv.Chooser) {
 
 	if !*checkDistribution {
 		t.Skip("skipping distribution check")
@@ -54,54 +55,26 @@ func testDistribution(t *testing.T, shards int, ch shardedkv.Chooser) {
 	t.Logf("peak=%v avg=%v ratio=%v", peak, avg, float64(peak)/avg)
 }
 
-func TestDistributionKetama8(t *testing.T)    { testDistribution(t, 8, ketama.New()) }
-func TestDistributionKetama32(t *testing.T)   { testDistribution(t, 32, ketama.New()) }
-func TestDistributionKetama128(t *testing.T)  { testDistribution(t, 128, ketama.New()) }
-func TestDistributionKetama512(t *testing.T)  { testDistribution(t, 512, ketama.New()) }
-func TestDistributionKetama2048(t *testing.T) { testDistribution(t, 2048, ketama.New()) }
-func TestDistributionKetama8192(t *testing.T) { testDistribution(t, 8192, ketama.New()) }
 
-func TestDistributionChash8(t *testing.T)    { testDistribution(t, 8, chash.New()) }
-func TestDistributionChash32(t *testing.T)   { testDistribution(t, 32, chash.New()) }
-func TestDistributionChash128(t *testing.T)  { testDistribution(t, 128, chash.New()) }
-func TestDistributionChash512(t *testing.T)  { testDistribution(t, 512, chash.New()) }
-func TestDistributionChash2048(t *testing.T) { testDistribution(t, 2048, chash.New()) }
-func TestDistributionChash8192(t *testing.T) { testDistribution(t, 8192, chash.New()) }
-
-func TestDistributionMulti8(t *testing.T) { testDistribution(t, 8, mpc.New(siphash64seed, seeds, 21)) }
-func TestDistributionMulti32(t *testing.T) {
-	testDistribution(t, 32, mpc.New(siphash64seed, seeds, 21))
-}
-func TestDistributionMulti128(t *testing.T) {
-	testDistribution(t, 128, mpc.New(siphash64seed, seeds, 21))
-}
-func TestDistributionMulti512(t *testing.T) {
-	testDistribution(t, 512, mpc.New(siphash64seed, seeds, 21))
-}
-func TestDistributionMulti2048(t *testing.T) {
-	testDistribution(t, 2048, mpc.New(siphash64seed, seeds, 21))
-}
-func TestDistributionMulti8192(t *testing.T) {
-	testDistribution(t, 8192, mpc.New(siphash64seed, seeds, 21))
+func testDistribution(t *testing.T, newch func() shardedkv.Chooser) {
+	for _, size := range []int{8, 32, 128, 512, 2048, 8192} {
+		t.Run(strconv.Itoa(size), func(t *testing.T) { testOneDistribution(t, size, newch()) })
+	}
 }
 
-func TestDistributionJump8(t *testing.T)    { testDistribution(t, 8, jump.New(siphash64)) }
-func TestDistributionJump32(t *testing.T)   { testDistribution(t, 32, jump.New(siphash64)) }
-func TestDistributionJump128(t *testing.T)  { testDistribution(t, 128, jump.New(siphash64)) }
-func TestDistributionJump512(t *testing.T)  { testDistribution(t, 512, jump.New(siphash64)) }
-func TestDistributionJump2048(t *testing.T) { testDistribution(t, 2048, jump.New(siphash64)) }
-func TestDistributionJump8192(t *testing.T) { testDistribution(t, 8192, jump.New(siphash64)) }
+func TestDistributionKetama(t *testing.T) { testDistribution(t, func() shardedkv.Chooser { return ketama.New() }) }
+func TestDistributionCHash(t *testing.T)  { testDistribution(t, func() shardedkv.Chooser { return chash.New() }) }
+func TestDistributionMulti(t *testing.T) {
+	testDistribution(t, func() shardedkv.Chooser { return mpc.New(siphash64seed, seeds, 21) })
+}
+func TestDistributionJump(t *testing.T) {
+	testDistribution(t, func() shardedkv.Chooser { return jump.New(siphash64) })
+}
+func TestDistributionRendezvous(t *testing.T) {
+	testDistribution(t, func() shardedkv.Chooser { return rendezvous.New() })
+}
 
-
-func TestDistributionRendezvous8(t *testing.T)    { testDistribution(t, 8, rendezvous.New()) }
-func TestDistributionRendezvous32(t *testing.T)   { testDistribution(t, 32, rendezvous.New()) }
-func TestDistributionRendezvous128(t *testing.T)  { testDistribution(t, 128, rendezvous.New()) }
-func TestDistributionRendezvous512(t *testing.T)  { testDistribution(t, 512, rendezvous.New()) }
-func TestDistributionRendezvous2048(t *testing.T) { testDistribution(t, 2048, rendezvous.New()) }
-func TestDistributionRendezvous8192(t *testing.T) { testDistribution(t, 8192, rendezvous.New()) }
-
-
-func TestDistributionMaglev8(t *testing.T)   { testDistribution(t, 8, maglev.New()) }
-func TestDistributionMaglev32(t *testing.T)  { testDistribution(t, 32, maglev.New()) }
-func TestDistributionMaglev128(t *testing.T) { testDistribution(t, 128, maglev.New()) }
-func TestDistributionMaglev512(t *testing.T) { testDistribution(t, 512, maglev.New()) }
+func TestDistributionMaglev8(t *testing.T)   { testOneDistribution(t, 8, maglev.New()) }
+func TestDistributionMaglev32(t *testing.T)  { testOneDistribution(t, 32, maglev.New()) }
+func TestDistributionMaglev128(t *testing.T) { testOneDistribution(t, 128, maglev.New()) }
+func TestDistributionMaglev512(t *testing.T) { testOneDistribution(t, 512, maglev.New()) }
