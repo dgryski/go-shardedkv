@@ -2,6 +2,7 @@ package choosers
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/dchest/siphash"
@@ -11,6 +12,7 @@ import (
 	"github.com/dgryski/go-shardedkv/choosers/ketama"
 	"github.com/dgryski/go-shardedkv/choosers/maglev"
 	"github.com/dgryski/go-shardedkv/choosers/mpc"
+	"github.com/dgryski/go-shardedkv/choosers/rendezvous"
 )
 
 func benchmarkChooser(b *testing.B, shards int, ch shardedkv.Chooser) {
@@ -29,40 +31,30 @@ func benchmarkChooser(b *testing.B, shards int, ch shardedkv.Chooser) {
 	}
 }
 
-func BenchmarkKetama8(b *testing.B)    { benchmarkChooser(b, 8, ketama.New()) }
-func BenchmarkKetama32(b *testing.B)   { benchmarkChooser(b, 32, ketama.New()) }
-func BenchmarkKetama128(b *testing.B)  { benchmarkChooser(b, 128, ketama.New()) }
-func BenchmarkKetama512(b *testing.B)  { benchmarkChooser(b, 512, ketama.New()) }
-func BenchmarkKetama2048(b *testing.B) { benchmarkChooser(b, 2048, ketama.New()) }
-func BenchmarkKetama8192(b *testing.B) { benchmarkChooser(b, 8192, ketama.New()) }
+func benchmarkOne(b *testing.B, newch func() shardedkv.Chooser) {
+	for _, size := range []int{8, 32, 128, 512, 2048, 8192} {
+		b.Run(strconv.Itoa(size), func(b *testing.B) { benchmarkChooser(b, size, newch()) })
+	}
+}
 
-func BenchmarkChash8(b *testing.B)    { benchmarkChooser(b, 8, chash.New()) }
-func BenchmarkChash32(b *testing.B)   { benchmarkChooser(b, 32, chash.New()) }
-func BenchmarkChash128(b *testing.B)  { benchmarkChooser(b, 128, chash.New()) }
-func BenchmarkChash512(b *testing.B)  { benchmarkChooser(b, 512, chash.New()) }
-func BenchmarkChash2048(b *testing.B) { benchmarkChooser(b, 2048, chash.New()) }
-func BenchmarkChash8192(b *testing.B) { benchmarkChooser(b, 8192, chash.New()) }
-
-func siphash64seed(b []byte, s uint64) uint64 { return uint64(siphash.Hash(0, s, b)) }
+func BenchmarkKetama(b *testing.B) { benchmarkOne(b, func() shardedkv.Chooser { return ketama.New() }) }
+func BenchmarkCHash(b *testing.B)  { benchmarkOne(b, func() shardedkv.Chooser { return chash.New() }) }
+func BenchmarkMulti(b *testing.B) {
+	benchmarkOne(b, func() shardedkv.Chooser { return mpc.New(siphash64seed, seeds, 21) })
+}
+func BenchmarkJump(b *testing.B) {
+	benchmarkOne(b, func() shardedkv.Chooser { return jump.New(siphash64) })
+}
+func BenchmarkRendezvous(b *testing.B) {
+	benchmarkOne(b, func() shardedkv.Chooser { return rendezvous.New() })
+}
 
 // lousy seeds
 var seeds = [2]uint64{1, 2}
 
-func BenchmarkMulti8(b *testing.B)    { benchmarkChooser(b, 8, mpc.New(siphash64seed, seeds, 21)) }
-func BenchmarkMulti32(b *testing.B)   { benchmarkChooser(b, 32, mpc.New(siphash64seed, seeds, 21)) }
-func BenchmarkMulti128(b *testing.B)  { benchmarkChooser(b, 128, mpc.New(siphash64seed, seeds, 21)) }
-func BenchmarkMulti512(b *testing.B)  { benchmarkChooser(b, 512, mpc.New(siphash64seed, seeds, 21)) }
-func BenchmarkMulti2048(b *testing.B) { benchmarkChooser(b, 2048, mpc.New(siphash64seed, seeds, 21)) }
-func BenchmarkMulti8192(b *testing.B) { benchmarkChooser(b, 8192, mpc.New(siphash64seed, seeds, 21)) }
+func siphash64seed(b []byte, s uint64) uint64 { return uint64(siphash.Hash(s, 0, b)) }
 
 func siphash64(b []byte) uint64 { return siphash.Hash(0, 0, b) }
-
-func BenchmarkJump8(b *testing.B)    { benchmarkChooser(b, 8, jump.New(siphash64)) }
-func BenchmarkJump32(b *testing.B)   { benchmarkChooser(b, 32, jump.New(siphash64)) }
-func BenchmarkJump128(b *testing.B)  { benchmarkChooser(b, 128, jump.New(siphash64)) }
-func BenchmarkJump512(b *testing.B)  { benchmarkChooser(b, 512, jump.New(siphash64)) }
-func BenchmarkJump2048(b *testing.B) { benchmarkChooser(b, 2048, jump.New(siphash64)) }
-func BenchmarkJump8192(b *testing.B) { benchmarkChooser(b, 8192, jump.New(siphash64)) }
 
 func BenchmarkMaglev8(b *testing.B)   { benchmarkChooser(b, 8, maglev.New()) }
 func BenchmarkMaglev32(b *testing.B)  { benchmarkChooser(b, 32, maglev.New()) }
