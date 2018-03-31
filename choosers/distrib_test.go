@@ -12,6 +12,7 @@ import (
 	"github.com/dgryski/go-shardedkv/choosers/ketama"
 	"github.com/dgryski/go-shardedkv/choosers/maglev"
 	"github.com/dgryski/go-shardedkv/choosers/mpc"
+	"github.com/dgryski/go-shardedkv/choosers/rendezvous"
 )
 
 var checkDistribution = flag.Bool("checkDistribution", false, "check the distribution of the different choosers")
@@ -90,6 +91,15 @@ func TestDistributionJump128(t *testing.T)  { testDistribution(t, 128, jump.New(
 func TestDistributionJump512(t *testing.T)  { testDistribution(t, 512, jump.New(siphash64)) }
 func TestDistributionJump2048(t *testing.T) { testDistribution(t, 2048, jump.New(siphash64)) }
 func TestDistributionJump8192(t *testing.T) { testDistribution(t, 8192, jump.New(siphash64)) }
+
+
+func TestDistributionRendezvous8(t *testing.T)    { testDistribution(t, 8, rendezvous.New()) }
+func TestDistributionRendezvous32(t *testing.T)   { testDistribution(t, 32, rendezvous.New()) }
+func TestDistributionRendezvous128(t *testing.T)  { testDistribution(t, 128, rendezvous.New()) }
+func TestDistributionRendezvous512(t *testing.T)  { testDistribution(t, 512, rendezvous.New()) }
+func TestDistributionRendezvous2048(t *testing.T) { testDistribution(t, 2048, rendezvous.New()) }
+func TestDistributionRendezvous8192(t *testing.T) { testDistribution(t, 8192, rendezvous.New()) }
+
 
 func TestDistributionMaglev8(t *testing.T)   { testDistribution(t, 8, maglev.New()) }
 func TestDistributionMaglev32(t *testing.T)  { testDistribution(t, 32, maglev.New()) }
