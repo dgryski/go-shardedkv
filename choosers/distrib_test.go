@@ -65,10 +65,10 @@ func testDistribution(t *testing.T, newch func() shardedkv.Chooser) {
 func TestDistributionKetama(t *testing.T) { testDistribution(t, func() shardedkv.Chooser { return ketama.New() }) }
 func TestDistributionCHash(t *testing.T)  { testDistribution(t, func() shardedkv.Chooser { return chash.New() }) }
 func TestDistributionMulti(t *testing.T) {
-	testDistribution(t, func() shardedkv.Chooser { return mpc.New(siphash64seed, seeds, 21) })
+	testDistribution(t, func() shardedkv.Chooser { return mpc.New(hash64seed, seeds, 21) })
 }
 func TestDistributionJump(t *testing.T) {
-	testDistribution(t, func() shardedkv.Chooser { return jump.New(siphash64) })
+	testDistribution(t, func() shardedkv.Chooser { return jump.New(hash64) })
 }
 func TestDistributionRendezvous(t *testing.T) {
 	testDistribution(t, func() shardedkv.Chooser { return rendezvous.New() })

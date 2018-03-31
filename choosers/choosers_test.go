@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/dchest/siphash"
+	"github.com/dgryski/go-metro"
 	"github.com/dgryski/go-shardedkv"
 	"github.com/dgryski/go-shardedkv/choosers/chash"
 	"github.com/dgryski/go-shardedkv/choosers/jump"
@@ -40,10 +40,10 @@ func benchmarkOne(b *testing.B, newch func() shardedkv.Chooser) {
 func BenchmarkKetama(b *testing.B) { benchmarkOne(b, func() shardedkv.Chooser { return ketama.New() }) }
 func BenchmarkCHash(b *testing.B)  { benchmarkOne(b, func() shardedkv.Chooser { return chash.New() }) }
 func BenchmarkMulti(b *testing.B) {
-	benchmarkOne(b, func() shardedkv.Chooser { return mpc.New(siphash64seed, seeds, 21) })
+	benchmarkOne(b, func() shardedkv.Chooser { return mpc.New(hash64seed, seeds, 21) })
 }
 func BenchmarkJump(b *testing.B) {
-	benchmarkOne(b, func() shardedkv.Chooser { return jump.New(siphash64) })
+	benchmarkOne(b, func() shardedkv.Chooser { return jump.New(hash64) })
 }
 func BenchmarkRendezvous(b *testing.B) {
 	benchmarkOne(b, func() shardedkv.Chooser { return rendezvous.New() })
@@ -52,9 +52,9 @@ func BenchmarkRendezvous(b *testing.B) {
 // lousy seeds
 var seeds = [2]uint64{1, 2}
 
-func siphash64seed(b []byte, s uint64) uint64 { return uint64(siphash.Hash(s, 0, b)) }
+func hash64seed(b []byte, s uint64) uint64 { return uint64(metro.Hash64(b, s)) }
 
-func siphash64(b []byte) uint64 { return siphash.Hash(0, 0, b) }
+func hash64(b []byte) uint64 { return metro.Hash64(b, 0) }
 
 func BenchmarkMaglev8(b *testing.B)   { benchmarkChooser(b, 8, maglev.New()) }
 func BenchmarkMaglev32(b *testing.B)  { benchmarkChooser(b, 32, maglev.New()) }
