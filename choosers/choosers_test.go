@@ -32,7 +32,7 @@ func benchmarkChooser(b *testing.B, shards int, ch shardedkv.Chooser) {
 }
 
 func benchmarkOne(b *testing.B, newch func() shardedkv.Chooser) {
-	for _, size := range []int{8, 32, 128, 512, 2048, 8192} {
+	for _, size := range []int{8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192} {
 		b.Run(strconv.Itoa(size), func(b *testing.B) { benchmarkChooser(b, size, newch()) })
 	}
 }
@@ -56,7 +56,8 @@ func hash64seed(b []byte, s uint64) uint64 { return uint64(metro.Hash64(b, s)) }
 
 func hash64(b []byte) uint64 { return metro.Hash64(b, 0) }
 
-func BenchmarkMaglev8(b *testing.B)   { benchmarkChooser(b, 8, maglev.New()) }
-func BenchmarkMaglev32(b *testing.B)  { benchmarkChooser(b, 32, maglev.New()) }
-func BenchmarkMaglev128(b *testing.B) { benchmarkChooser(b, 128, maglev.New()) }
-func BenchmarkMaglev512(b *testing.B) { benchmarkChooser(b, 512, maglev.New()) }
+func BenchmarkMaglev(b *testing.B) {
+	for _, size := range []int{8, 16, 32, 64, 128, 256, 512} {
+		b.Run(strconv.Itoa(size), func(b *testing.B) { benchmarkChooser(b, size, maglev.New()) })
+	}
+}
